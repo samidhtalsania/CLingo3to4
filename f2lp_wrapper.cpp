@@ -24,6 +24,8 @@ compiling command : g++ -I /usr/include/boost f2lp_wrapper.cpp -o regex_test -L 
 #include <boost/iostreams/filtering_stream.hpp>
 
 
+
+
 namespace io = boost::iostreams; 
 
 std::string match_ground_term_rule(const std::string input);
@@ -36,15 +38,89 @@ int match_normal_rule(std::string& output, const std::string& input)
 		boost::regex comma_expr("(,)");
 		std::string semi_colon_expr(";");
 		std::cout<<boost::regex_replace(output,comma_expr,semi_colon_expr);
-		return 0;
+		return 1;
 	}
 	else
-		return 1;
+		return 0;
 }
 
-int match_counting_literal_rule(std::String& output, const std::string& input)
+//need to optimize this
+int match_counting_literal_rule(std::string& output, const std::string& input)
 {
-	
+	boost::regex expr("([0-9 ]*) ([{]){1} ([A-Za-z0-9\\(\\),:<>= ]+) ([}]){1} ([0-9 ]*)"); 
+	std::cout<<boost::regex_match(input,expr)<<std::endl;
+
+	output = input;
+
+	if(boost::regex_match(output,expr))
+	{
+		
+		//std::string new_string(s);
+		int count = 0;
+		int inside_paren = 0;//1 is true in c++, 0 is false
+		
+		//2 loops
+		// first loop changes all the commas separating two choice rules to semi colons
+		
+		//first loop
+		for (size_t i = 0; i < output.length() ; ++i)
+		{
+			if(output[i] == '(')
+			{
+				inside_paren = 1;
+				continue;
+			}
+
+			if(output[i] == ')')
+			{
+				inside_paren = 0;
+				continue;
+			}
+
+			if (output[i] == ',' && inside_paren == 0)
+			{
+				output[i] = ';';
+				continue;
+			}
+		}
+
+		#ifdef DEBUG
+		std::cout<<"output after first rule\n";
+		std::cout<<output<<std::endl;
+		#endif
+
+		//second loop changes all colons except the first colon to commas
+		// 1 { q(X,Y): p(X): p(Y): X < Y, q(X,X): p(X)   } 1 
+		for (size_t i = 0; i < output.length(); ++i)
+		{
+			if (output[i] == ':')
+			{
+			
+				if(count != 0)
+				{
+					output[i] = ','	;
+				}
+
+				count++ ;
+				continue;
+			}
+
+			if(output[i] == ';')
+			{
+				count = 0;
+				continue;
+			}
+		}
+
+		#ifdef DEBUG
+		std::cout<<"output after second rule\n";
+		std::cout<<output<<std::endl;
+		#endif
+		
+		return 1;
+	}
+	else
+		return 0;
 }
 std::string match_conditional_literal_rule(const std::string input);
 std::string match_domain_rule(const std::string input);
