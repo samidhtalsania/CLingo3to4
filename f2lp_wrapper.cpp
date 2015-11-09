@@ -24,6 +24,8 @@ compiling command : g++ -I /usr/include/boost f2lp_wrapper.cpp -o regex_test -L 
 #include <boost/iostreams/filtering_stream.hpp>
 
 
+#define DEBUG 0
+#define COMMENT "%"
 
 
 namespace io = boost::iostreams; 
@@ -122,28 +124,41 @@ int match_counting_literal_rule(std::string& output, const std::string& input)
 	else
 		return 0;
 }
+
 std::string match_conditional_literal_rule(const std::string input);
 std::string match_domain_rule(const std::string input);
-std::string match_hide_rule(const std::string input);
+int match_hide_rule(std::string& output, const std::string& input)
+{
+	boost::regex expr("(#hide)"); 
+	// std::cout<<boost::regex_match(s,expr)<<std::endl;
+	
+	#ifdef DEBUG
+		//c++ true = 1 false = 0
+		std::cout<<boost::regex_match(output,expr)<<std::endl;
+	#endif
+
+
+	if(boost::regex_match(output,expr))
+	{
+		output.insert(0,COMMENT);
+		
+		#ifdef DEBUG
+			std::cout<<output<<std::endl;
+		#endif
+		
+		return 1;
+	}
+	else
+		return 0;
+}
+
 int match_rule(std::string& output, const std::string& input)
 {
 
-	output = "H";
-	// if (match_ground_term_rule)
-	// 	return 1
-	if (match_normal_rule(output,input))
-		return 1;
-	// if (match_counting_literal_rule)
-	// 	return 1
-	// if (match_conditional_literal_rule)
-	// 	return 1
-	// if (match_domain_rule)
-	// 	return 1
-	// if (match_hide_rule)
-	// 	return 1
-	
 	return 1;
 }
+
+
 
 struct domain_line
 {
@@ -203,7 +218,7 @@ int main(int argc, char const *argv[])
             			std::string input_temp(ind_commands[i]); 
             			if(match_rule(output,input_temp))
             			{
-            				
+            				continue;
             			}
             		}
 
