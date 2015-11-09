@@ -30,7 +30,41 @@ compiling command : g++ -I /usr/include/boost f2lp_wrapper.cpp -o regex_test -L 
 
 namespace io = boost::iostreams; 
 
-std::string match_ground_term_rule(const std::string input);
+std::vector<std::pair<std:string,std::string>> domains_list;
+
+std::vector<std::string> search_domain_variables(const std::string& input)
+{
+
+	std::string::const_iterator start, end; 
+	start = input.begin(); 
+	end = input.end();
+	std::vector<std::string> domains;
+	boost::match_results<std::string::const_iterator> what; 
+	boost::regex expr("([A-Z]+)");
+	while(boost::regex_search(start, end, what, expr))
+	{
+		start = what[0].second;
+		
+		for (int i = 0; i < domain_list.size(); ++i)
+		{
+			if (what[1].compare(domain_list[i].first) == 0)
+			{
+				domains.push_back(what[1]);	
+				break;
+			}
+		}
+		
+	}
+	#ifdef DEBUG
+	std::cout<<domains.size()<<std::endl;
+	for (int i = 0; i < domains.size(); ++i)
+	{
+		std::cout<<domains[i]<<std::endl;
+	}
+	#endif
+
+	return domains;
+}
 
 int isDomain(const std::string& input)
 {
