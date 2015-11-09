@@ -32,6 +32,28 @@ namespace io = boost::iostreams;
 
 std::string match_ground_term_rule(const std::string input);
 
+int isDomain(const std::string& input)
+{
+	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z]+)([)]){1}");
+	return regex_match(input,expr) ? 1 : 0 ;
+}
+
+std::pair<std::string,std::string> get_domain_variables(const std::string& input)
+{
+	std::string::const_iterator start, end; 
+	start = input.begin(); 
+	end = input.end();
+	boost::match_results<std::string::const_iterator> what; 
+	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z]+)([)]){1}");
+	boost::regex_match(start, end, what, expr);
+
+	std::string variable(what[what.size()-2]);
+	std::string identifier(what[what.size()-4]);
+	std::pair <std::string,std::string> domain (variable,identifier);
+
+	return domain;
+}
+
 int match_normal_rule(std::string& output, const std::string& input)
 {
 	boost::regex expr("([ a-zA-Z0-9\\(\\)]+)(:-){1}([ ,.a-zA-Z0-9\\(\\)]+)"); 
@@ -125,8 +147,10 @@ int match_counting_literal_rule(std::string& output, const std::string& input)
 		return 0;
 }
 
-std::string match_conditional_literal_rule(const std::string input);
-std::string match_domain_rule(const std::string input);
+
+
+
+
 int match_hide_rule(std::string& output, const std::string& input)
 {
 	boost::regex expr("(#hide)"); 
@@ -158,13 +182,6 @@ int match_rule(std::string& output, const std::string& input)
 	return 1;
 }
 
-
-
-struct domain_line
-{
-	std::string function_name;
-	std::string function_variable;
-};
 
 std::string get_file_contents(const char *filename)
 {
