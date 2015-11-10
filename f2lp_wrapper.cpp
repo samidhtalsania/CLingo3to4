@@ -35,26 +35,20 @@ std::vector< std::pair<std::string,std::string> > domain_list;
 std::vector<std::string> search_domain_variables(const std::string& input)
 {
 
-	std::string::const_iterator start, end; 
-	start = input.begin(); 
-	end = input.end();
+	
 	std::vector<std::string> domains;
-	boost::match_results<std::string::const_iterator> what; 
+	
 	boost::regex expr("([A-Z]+)");
-	while(boost::regex_search(start, end, what, expr))
-	{
-		start = what[0].second;
-		
-		for (int i = 0; i < domain_list.size(); ++i)
-		{
-			if (what[1].compare(domain_list[i].first) == 0)
-			{
-				domains.push_back(what[1]);	
-				break;
-			}
-		}
-		
-	}
+	
+	boost::sregex_token_iterator iter(input.begin(), input.end(), expr, 0);
+    boost::sregex_token_iterator end;
+
+    for (; iter != end; ++iter)
+    {
+    	domains.push_back(std::string(*iter));
+    	
+    }
+    
 	#ifdef DEBUG
 	std::cout<<domains.size()<<std::endl;
 	for (int i = 0; i < domains.size(); ++i)
