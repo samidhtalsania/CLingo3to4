@@ -30,7 +30,7 @@ compiling command : g++ -I /usr/include/boost f2lp_wrapper.cpp -o regex_test -L 
 
 namespace io = boost::iostreams; 
 
-std::vector<std::pair<std:string,std::string>> domains_list;
+std::vector< std::pair<std::string,std::string> > domain_list;
 
 std::vector<std::string> search_domain_variables(const std::string& input)
 {
