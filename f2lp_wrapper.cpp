@@ -26,35 +26,46 @@ compiling command : g++ -I /usr/include/boost f2lp_wrapper.cpp -o regex_test -L 
 
 #define DEBUG 0
 #define COMMENT "%"
+#define PAREN_OPEN "("
+#define PAREN_CLOSE ")"
+#define COMMA ","
+#define COLON_DASH ":-" 
 
 
 namespace io = boost::iostreams; 
+namespace ba = boost::algorithm;
 
 std::vector< std::pair<std::string,std::string> > domain_list;
 
-std::vector<std::string> search_domain_variables(const std::string& input)
+std::set<std::string> search_domain_variables(const std::string& input)
 {
 
 	
-	std::vector<std::string> domains;
+	std::set<std::string> domains;
+
 	
-	boost::regex expr("([A-Z]+)");
-	
+	// boost::regex expr("([A-Z]+)");
+	boost::regex expr("([A-Z]+)([A-Za-z0-9]*)");
+
 	boost::sregex_token_iterator iter(input.begin(), input.end(), expr, 0);
     boost::sregex_token_iterator end;
 
     for (; iter != end; ++iter)
     {
-    	domains.push_back(std::string(*iter));
-    	
-    }
-    
+    	std::cout<<*iter<<std::endl;
+		domains.insert(std::string(*iter));
+   	}
+	
+
+
 	#ifdef DEBUG
-	std::cout<<domains.size()<<std::endl;
-	for (int i = 0; i < domains.size(); ++i)
+	std::set<std::string>::iterator it;
+	for (it = domains.begin(); it != domains.end() ; ++it)
 	{
-		std::cout<<domains[i]<<std::endl;
+	 	/* code */
+	 	std::cout<<*it<<std::endl;
 	}
+	
 	#endif
 
 	return domains;
@@ -62,7 +73,7 @@ std::vector<std::string> search_domain_variables(const std::string& input)
 
 int isDomain(const std::string& input)
 {
-	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z]+)([)]){1}");
+	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z]+)([A-Za-z0-9]*)([)]){1}");
 	return regex_match(input,expr) ? 1 : 0 ;
 }
 
@@ -72,7 +83,7 @@ std::pair<std::string,std::string> get_domain_variables(const std::string& input
 	start = input.begin(); 
 	end = input.end();
 	boost::match_results<std::string::const_iterator> what; 
-	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z]+)([)]){1}");
+	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z]+[A-Za-z0-9]*)([)]){1}");
 	boost::regex_match(start, end, what, expr);
 
 	std::string variable(what[what.size()-2]);
@@ -80,6 +91,103 @@ std::pair<std::string,std::string> get_domain_variables(const std::string& input
 	std::pair <std::string,std::string> domain (variable,identifier);
 
 	return domain;
+}
+
+
+/*
+Matches all clauses that statrt with #domain. 
+*/
+int match_domain_rule(const std::string& input)
+{
+	//first check if the clause is a domain. If it is a domain clause, extract the identifier and variable from it and exit
+	if(isDomain(input))
+	{
+		// The sentence is a domain. Extract Domin identfier and domain variable and put it in a list
+		domain_list.push_back(get_domain_variables(input));
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+	//second check if the sentence has any variable in it that might be a domain variable. If it has then do appropriate operations to remove those.
+}
+
+/*
+Method removes domain variables from clauses.
+Call this method for every sentence.
+All senstences need to be checked for domain variables
+*/
+void remove_domain_variables(std::string& output,const std::string& input)
+{
+	std::set<std::string> domains = search_domain_variables(input);
+	output = input ;
+	if(domains.size() > 0)
+	{
+		/* Found a domain in this input.
+
+		strategy 1:
+		input types:
+		1-> {loc(X,Y)}. 
+
+			Now although X and Y can both be a global 
+			variables, there is a global variable associated 
+			with X but not with Y. So we only process for X
+			and assume that Y is a local variable.				
+
+		*/
+
+		/*For each global variable detected from a string and 
+		append it to the end of the current clause. Match the 
+		identifier of the global variable from the domain_list vector.*/
+
+		/*This is the generated strnig that needs to be appended to 
+		original string */
+		std::string generated_string;
+		std::set<std::string>::iterator i;
+		for (i = domains.begin(); i != domains.end(); ++i)
+		{
+			
+			for (int j = 0; j < domain_list.size(); ++j)
+			{
+
+				
+				if ((*i).compare(domain_list.at(j).first) == 0)
+				{
+					
+					generated_string.append(domain_list.at(j).second)
+					.append(PAREN_OPEN)
+					.append(domain_list.at(j).first)
+					.append(PAREN_CLOSE)
+					.append(COMMA);
+					
+				}
+			}
+		}
+
+		/* The last clause will have a trailing comma, remove that*/
+		ba::trim_right_if(generated_string,ba::is_any_of(COMMA));
+
+		//detect if a string has ':-' in it
+		//If it doesn't then append a ':-' to the clause and
+		//then append the generated string
+		if(input.find(":-") == std::string::npos)
+		{
+			output.append(COLON_DASH)
+			.append(generated_string);
+			#ifdef DEBUG
+			std::cout<<"final string:"<<output<<std::endl;
+			#endif
+		}
+		else
+		{
+			output.append(COMMA)
+			.append(generated_string);
+			#ifdef DEBUG
+			std::cout<<"final string:"<<output<<std::endl;
+			#endif
+		}
+	}
 }
 
 int match_normal_rule(std::string& output, const std::string& input)
