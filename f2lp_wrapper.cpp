@@ -318,23 +318,37 @@ int match_counting_literal_rule(std::string& output, const std::string& input)
 
 int match_hide_rule(std::string& output, const std::string& input)
 {
-	boost::regex expr("(#hide)"); 
+	// boost::regex expr("(#hide)"); 
 	
 	
-	#ifdef DEBUG
-		//c++ true = 1 false = 0
-		std::cout<<boost::regex_match(output,expr)<<std::endl;
-	#endif
+	// #ifdef DEBUG
+	// 	//c++ true = 1 false = 0
+	// 	std::cout<<boost::regex_match(output,expr)<<std::endl;
+	// #endif
 
 
-	if(boost::regex_match(output,expr))
+	// if(boost::regex_match(output,expr))
+	// {
+	// 	output.insert(0,COMMENT);
+		
+	// 	#ifdef DEBUG
+	// 		std::cout<<output<<std::endl;
+	// 	#endif
+		
+	// 	return 1;
+	// }
+	// else
+	// 	return 0;
+	output = input;
+
+	//c++ true = 1 false = 0
+	// std::cout<<boost::regex_match(output,expr)<<std::endl;
+	std::string hide("#hide"); 
+	std::size_t found = input.find(hide);
+
+	if(found != std::string::npos)
 	{
 		output.insert(0,COMMENT);
-		
-		#ifdef DEBUG
-			std::cout<<output<<std::endl;
-		#endif
-		
 		return 1;
 	}
 	else
@@ -409,13 +423,23 @@ int main(int argc, char const *argv[])
 	        io::filtering_istream in;
 	        
 	        in.push(file);
+	        
 	        for(std::string str; std::getline(in, str); )
 	        {
 	            //str has all the lines
 	            if(!str.empty())
 	            {
+
+
+
 	            	//process str. Str can be a single line ex q(1,2).q(1,3). need to separate these commands process them individually
 	            	std::vector<std::string> ind_commands;
+
+	            	if(str.compare(0,1,COMMENT) == 0)
+					{
+						outfile << str.append(NEWLINE);
+						continue;
+					}
 	            	
 	            	// First you need to check if it is a range statement.
 	            	// Example. number(1..8) should not be split at the innner dots.
