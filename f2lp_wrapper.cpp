@@ -29,7 +29,7 @@ Go YOLO on monday.
 #include <boost/algorithm/string/replace.hpp>
 
 
-// #define DEBUG 0
+#define DEBUG 0
 #define COMMENT "%"
 #define PAREN_OPEN "("
 #define PAREN_CLOSE ")"
@@ -59,24 +59,9 @@ std::set<std::string> search_domain_variables(const std::string& input)
 
     for (; iter != end; ++iter)
     {
-    	#ifdef DEBUG
-    	std::cout<<*iter<<std::endl;
-    	#endif
+    	
 		domains.insert(std::string(*iter));
    	}
-	
-
-
-	#ifdef DEBUG
-	std::set<std::string>::iterator it;
-	for (it = domains.begin(); it != domains.end() ; ++it)
-	{
-	 	/* code */
-	 	std::cout<<*it<<std::endl;
-	}
-	
-	#endif
-
 	return domains;
 }
 
@@ -168,6 +153,9 @@ void remove_domain_variables(std::string& output,const std::string& input)
 			original string */
 			std::string generated_string;
 			std::set<std::string>::iterator i;
+
+			int is_domain_added = 0;
+
 			for (i = domains.begin(); i != domains.end(); ++i)
 			{
 				for (int j = 0; j < domain_list.size(); ++j)
@@ -179,6 +167,7 @@ void remove_domain_variables(std::string& output,const std::string& input)
 						.append(domain_list.at(j).first)
 						.append(PAREN_CLOSE)
 						.append(COMMA);
+						is_domain_added = 1;
 					}
 				}
 			}
@@ -186,24 +175,23 @@ void remove_domain_variables(std::string& output,const std::string& input)
 			/* The last clause will have a trailing comma, remove that*/
 			ba::trim_right_if(generated_string,ba::is_any_of(COMMA));
 
-			//detect if a string has ':-' in it
-			//If it doesn't then append a ':-' to the clause and
-			//then append the generated string
-			if(input.find(":-") == std::string::npos)
+			if(is_domain_added == 1)
 			{
-				output.append(COLON_DASH)
-				.append(generated_string);
-				#ifdef DEBUG
-				std::cout<<"final string:"<<output<<std::endl;
-				#endif
-			}
-			else
-			{
-				output.append(COMMA)
-				.append(generated_string);
-				#ifdef DEBUG
-				std::cout<<"final string:"<<output<<std::endl;
-				#endif
+				//detect if a string has ':-' in it
+				//If it doesn't then append a ':-' to the clause and
+				//then append the generated string
+				if(input.find(":-") == std::string::npos)
+				{
+					output.append(COLON_DASH)
+					.append(generated_string);
+					
+				}
+				else
+				{
+					output.append(COMMA)
+					.append(generated_string);
+					
+				}
 			}
 		}
 		else
@@ -221,9 +209,7 @@ int match_normal_rule(std::string& output, const std::string& input)
 		boost::regex comma_expr("(,)");
 		std::string semi_colon_expr(";");
 		boost::regex_replace(output,comma_expr,semi_colon_expr);
-		#ifdef DEBUG
-		std::cout<<boost::regex_replace(output,comma_expr,semi_colon_expr);
-		#endif
+		
 		return 1;
 	}
 	else
@@ -235,9 +221,7 @@ int match_counting_literal_rule(std::string& output, const std::string& input)
 {
 	boost::regex expr("([0-9 ]*) ([{]){1} ([A-Za-z0-9\\(\\),:<>= ]+) ([}]){1} ([0-9 ]*)"); 
 	
-	#ifdef DEBUG
-	std::cout<<boost::regex_match(input,expr)<<std::endl;
-	#endif
+
 
 	output = input;
 
@@ -273,10 +257,7 @@ int match_counting_literal_rule(std::string& output, const std::string& input)
 			}
 		}
 
-		#ifdef DEBUG
-		std::cout<<"output after first rule\n";
-		std::cout<<output<<std::endl;
-		#endif
+	
 
 		//second loop changes all colons except the first colon to commas
 		// 1 { q(X,Y): p(X): p(Y): X < Y, q(X,X): p(X)   } 1 
@@ -301,10 +282,6 @@ int match_counting_literal_rule(std::string& output, const std::string& input)
 			}
 		}
 
-		#ifdef DEBUG
-		std::cout<<"output after second rule\n";
-		std::cout<<output<<std::endl;
-		#endif
 		
 		return 1;
 	}
@@ -318,31 +295,9 @@ int match_counting_literal_rule(std::string& output, const std::string& input)
 
 int match_hide_rule(std::string& output, const std::string& input)
 {
-	// boost::regex expr("(#hide)"); 
-	
-	
-	// #ifdef DEBUG
-	// 	//c++ true = 1 false = 0
-	// 	std::cout<<boost::regex_match(output,expr)<<std::endl;
-	// #endif
-
-
-	// if(boost::regex_match(output,expr))
-	// {
-	// 	output.insert(0,COMMENT);
-		
-	// 	#ifdef DEBUG
-	// 		std::cout<<output<<std::endl;
-	// 	#endif
-		
-	// 	return 1;
-	// }
-	// else
-	// 	return 0;
 	output = input;
 
 	//c++ true = 1 false = 0
-	// std::cout<<boost::regex_match(output,expr)<<std::endl;
 	std::string hide("#hide"); 
 	std::size_t found = input.find(hide);
 
@@ -362,27 +317,37 @@ int match_rule(std::string& output, const std::string& input)
 {
 	if (match_hide_rule(output,input))
 	{
-		// std::cout<<"hide rule matched"<<std::endl;
+		#ifdef DEBUG
+			std::cout<<"hide rule matched"<<std::endl;
+		#endif
 		return 1;
 	}
 	else if (match_counting_literal_rule(output,input))
 	{
-		// std::cout<<"counting rule matched"<<std::endl;
+		#ifdef DEBUG
+			std::cout<<"counting rule matched"<<std::endl;
+		#endif
 		return 1;
 	}
 	else if (match_normal_rule(output,input))
 	{
-		// std::cout<<"normal rule matched"<<std::endl;
+		#ifdef DEBUG
+			std::cout<<"normal rule matched"<<std::endl;
+		#endif
 		return 1;
 	}
 	else if (match_domain_rule(output,input))
 	{
-		// std::cout<<"domain rule matched"<<std::endl;
+		#ifdef DEBUG
+			std::cout<<"domain rule matched"<<std::endl;
+		#endif
 		return 1;
 	}
 	else
 	{
-		// std::cout<<"No rule matched"<<std::endl;
+		#ifdef DEBUG
+			std::cout<<"No rule matched"<<std::endl;
+		#endif
 		return 0;
 	}
 	
@@ -476,6 +441,9 @@ int main(int argc, char const *argv[])
             			if (output.size() > 2)
         				{
         					outfile << output;
+        					#ifdef DEBUG
+        						std::cout<<output<<std::endl;
+        					#endif
         				}
 
             			
