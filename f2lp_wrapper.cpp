@@ -52,7 +52,7 @@ std::set<std::string> search_domain_variables(const std::string& input)
 	std::set<std::string> domains;
 	
 	// boost::regex expr("([A-Z]+)");
-	boost::regex expr("([A-Z]+)([A-Za-z0-9]*)");
+	boost::regex expr("([A-Z_]+)([A-Za-z0-9_]*)");
 
 	boost::sregex_token_iterator iter(input.begin(), input.end(), expr, 0);
     boost::sregex_token_iterator end;
@@ -67,7 +67,7 @@ std::set<std::string> search_domain_variables(const std::string& input)
 
 int isDomain(const std::string& input)
 {
-	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z]+)([A-Za-z0-9]*)([)]){1}");
+	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z_]+)([A-Za-z0-9_]*)([)]){1}");
 	return regex_match(input,expr) ? 1 : 0 ;
 }
 
@@ -77,7 +77,7 @@ std::pair<std::string,std::string> get_domain_variables(const std::string& input
 	start = input.begin(); 
 	end = input.end();
 	boost::match_results<std::string::const_iterator> what; 
-	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z]+[A-Za-z0-9]*)([)]){1}");
+	boost::regex expr("(#domain)([ ]+)([a-z]+)([(]){1}([A-Z_]+[A-Za-z0-9_]*)([)]){1}");
 	boost::regex_match(start, end, what, expr);
 
 	std::string variable(what[what.size()-2]);
