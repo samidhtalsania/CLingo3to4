@@ -29,7 +29,7 @@ Go YOLO on monday.
 #include <boost/algorithm/string/replace.hpp>
 
 
-#define DEBUG 0
+// #define DEBUG 0
 #define COMMENT "%"
 #define PAREN_OPEN "("
 #define PAREN_CLOSE ")"
@@ -291,23 +291,31 @@ int match_counting_literal_rule(std::string& output, const std::string& input)
 
 
 
+/*
+Clingo 4 does not support #hide and #base clauses
+*/
 
-
-int match_hide_rule(std::string& output, const std::string& input)
+int match_hide_base_rule(std::string& output, const std::string& input)
 {
 	output = input;
 
 	//c++ true = 1 false = 0
-	std::string hide("#hide"); 
-	std::size_t found = input.find(hide);
+	std::string hide("#hide");
+	std::string base("#base");
+	std::vector<std::string> clauses;
+	clauses.push_back(hide);
+	clauses.push_back(base);
 
-	if(found != std::string::npos)
+	for (int i = 0; i < clauses.size(); ++i)
 	{
-		output.insert(0,COMMENT);
-		return 1;
+		if (output.find(clauses.at(i)) != std::string::npos)
+		{
+			output.insert(0, COMMENT);
+			return 1;
+		}
 	}
-	else
-		return 0;
+
+	return 0;
 }
 
 //Every string will match one of these rules. If it wont match the string is written as it is.
@@ -315,7 +323,7 @@ int match_hide_rule(std::string& output, const std::string& input)
 //If it contains domain variables then in that case those variables need to be removed.
 int match_rule(std::string& output, const std::string& input)
 {
-	if (match_hide_rule(output,input))
+	if (match_hide_base_rule(output,input))
 	{
 		#ifdef DEBUG
 			std::cout<<"hide rule matched"<<std::endl;
@@ -350,7 +358,6 @@ int match_rule(std::string& output, const std::string& input)
 		#endif
 		return 0;
 	}
-	
 }
 
 
@@ -369,7 +376,7 @@ std::string get_file_contents(const char *filename)
 int main(int argc, char const *argv[])
 {
 
-	const char *input_file_name = "input.txt";
+	const char *input_file_name = argv[1];
 	const char *output_file_name = "output.txt";
 	
 	std::ifstream file(input_file_name, std::ios_base::in | std::ios_base::binary);
