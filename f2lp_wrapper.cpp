@@ -377,14 +377,14 @@ int main(int argc, char const *argv[])
 {
 
 	const char *input_file_name = argv[1];
-	const char *output_file_name = "output.txt";
+	const char *output_file_name = "output.l";
 	
 	std::ifstream file(input_file_name, std::ios_base::in | std::ios_base::binary);
 	std::ofstream outfile(output_file_name);
 
 	if(!outfile.is_open())
 	{
-		std::cerr << "Couldn't open output.txt \n";
+		std::cerr << "Couldn't open output.l \n";
 		return -1;
 	}
 
@@ -467,7 +467,7 @@ int main(int argc, char const *argv[])
 	else
 	{
 		std::cerr << "File could not be opened!\n";
-		std::cerr << "Error Code: "<< strerror(errno)<<"\n";	
+		std::cerr << "Usage: f2lp_test <input file>"<<"\n";	
 	}
    
 	return 0;
