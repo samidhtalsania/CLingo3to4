@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/program_options.hpp>
 
 // #define DEBUG 0
 #define COMMENT "%"
@@ -22,5 +23,6 @@
 #define WHITESPACE "\t \n"
 #define HASHTAG "#"
 #define NEWLINE "\n"
+#define OUTPUT_EXTN ".cl\0" 
 
 namespace ba = boost::algorithm;

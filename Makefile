@@ -2,13 +2,13 @@
 
 CC = g++
 
-CFLAGS = -Wall -g 
+CFLAGS = -g 
 
 INCLUDES = -I/use/include/boost
 
 LFALGS = -L/usr/lib/x86_64-linux-gnu/ 
 
-LIBS = -lboost_regex
+LIBS = -lboost_regex -lboost_program_options
 
 SRCS = program.cpp clingo3to4.cpp domain.cpp
 

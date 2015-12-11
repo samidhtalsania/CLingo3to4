@@ -3,14 +3,147 @@
 
 
 namespace io = boost::iostreams; 
+namespace po = boost::program_options; 
 
+int clingo3to4::convert(const int argc,const char *argv[])
+{	
+	// int parse_op = clingo3to4::parse_input_args(argc,argv);
 
-int clingo3to4::convert(const char *argv[])
-{
-	const char *input_file_name = argv[1];
-	const char *output_file_name = "output.l";
+	po::options_description desc("Options");
+	desc.add_options()
+		("help,h","Produce help message")
+		("stdin,s","Use this option to read from stdin. This is the default.")
+		("file,f",po::value<std::string>(),"Use this option to read from file");
 	
+	try
+	{
+		po::positional_options_description p;
+		p.add("file",-1);
+		po::variables_map vm;
+		po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+		po::notify(vm);
+
+		
+		if (vm.count("help"))
+		{
+			std::cout<< desc << std::endl;
+		}
+
+		else if (vm.count("stdin"))
+		{
+			clingo3to4::convert_stdin(argv);	
+		}
+
+		else if (vm.count("file"))
+		{
+			clingo3to4::convert_file(argv);
+		}
+		
+		// If no input arguments are given it defaults to stdin
+		else
+		{
+			clingo3to4::convert_stdin(argv);
+		}
+	}
+
+	catch(po::error& e) 
+    { 
+		std::cerr << "ERROR: " << e.what() << std::endl << std::endl; 
+		std::cerr << desc << std::endl; 
+		return -1; 
+    } 
+	
+	catch(std::exception& e) 
+	{ 
+		std::cerr << "Unhandled Exception reached the top of main: " 
+		          << e.what() << ", application will now exit" << std::endl; 
+		return -1; 
+	} 
+	return 0;
+}
+
+int clingo3to4::convert_stdin(const char *argv[])
+{
+	std::string str; 
+	while (std::getline(std::cin, str)) 
+	{
+		if(!str.empty())
+        {
+
+			//process str. Str can be a single line ex q(1,2).q(1,3). need to separate these commands process them individually
+        	std::vector<std::string> ind_commands;
+
+        	if(str.compare(0,1,COMMENT) == 0)
+			{
+				std::cout << str.append(NEWLINE);
+				continue;
+			}
+        	
+        	// First you need to check if it is a range statement.
+        	// Example. number(1..8) should not be split at the innner dots.
+        	// One way to do this is convert the first pair of dots to ",," do the split then reconvert it back to ".."
+        	std::size_t found = str.find("..");
+        	
+        	if(found != std::string::npos)
+        	{
+        		boost::replace_all(str, "..", ",,");
+        	}
+
+    		boost::split(ind_commands,str,boost::is_any_of(DOT));
+
+    		for (int i = 0; i < ind_commands.size(); ++i)
+    		{
+    			/* code */
+    			boost::trim_if(ind_commands[i], boost::is_any_of(WHITESPACE)); 
+    			
+    			std::string input_temp(ind_commands[i]);
+    			std::string output(input_temp); 
+				
+				match_rule(output,input_temp);
+    			domain::remove_domain_variables(output,output);
+				output.append(DOT).append(NEWLINE);
+				
+				//Reversing the above operation
+    			if(found != std::string::npos)
+    			{
+    				boost::replace_all(output, ",,", "..");
+    			}
+
+    			// Dirty hack to remove all outputs with just a dot. need to figure out why
+
+    			if (output.size() > 2)
+				{
+					std::cout << output;
+					#ifdef DEBUG
+						std::cout<<output<<std::endl;
+					#endif
+				}
+			}
+        }
+	}
+}
+
+int clingo3to4::convert_file(const char *argv[])
+{
+	const char *input_file_name;
+	// const char *output_file_name = "output.l";
+	
+	if ((argv[2] != NULL) && (argv[2] == '\0')) 
+	{
+	   std::cout<<"Usage: clingo3to4 <input file>"<<std::endl;
+	   return 0;
+	}
+	else
+	{
+		input_file_name = argv[2];
+	}
+
 	std::ifstream file(input_file_name, std::ios_base::in | std::ios_base::binary);
+	
+	char *output_file_name = (char *) malloc (sizeof(char*) * (strlen(argv[1]) + strlen(OUTPUT_EXTN)));
+	strcpy(output_file_name,input_file_name);
+	strcat(output_file_name,OUTPUT_EXTN);
+	
 	std::ofstream outfile(output_file_name);
 
 	if(!outfile.is_open())
@@ -21,8 +154,8 @@ int clingo3to4::convert(const char *argv[])
 
     if(file)
     {
-	    try {
-
+	    try 
+		{
 	        io::filtering_istream in;
 	        
 	        in.push(file);
@@ -33,9 +166,7 @@ int clingo3to4::convert(const char *argv[])
 	            if(!str.empty())
 	            {
 
-
-
-	            	//process str. Str can be a single line ex q(1,2).q(1,3). need to separate these commands process them individually
+					//process str. Str can be a single line ex q(1,2).q(1,3). need to separate these commands process them individually
 	            	std::vector<std::string> ind_commands;
 
 	            	if(str.compare(0,1,COMMENT) == 0)
@@ -102,7 +233,6 @@ int clingo3to4::convert(const char *argv[])
 		std::cerr << "Usage: clingo3to4 <input file>"<<"\n";	
 	}
    return 0;
-
 }
 
 int clingo3to4::match_normal_rule(std::string& output, const std::string& input)
