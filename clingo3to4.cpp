@@ -253,11 +253,28 @@ int clingo3to4::match_normal_rule(std::string& output, const std::string& input)
 //need to optimize this
 int clingo3to4::match_counting_literal_rule(std::string& output, const std::string& input)
 {
-	boost::regex expr("([0-9 ]*) ([{]){1} ([A-Za-z0-9\\(\\),:<>= ]+) ([}]){1} ([0-9 ]*)"); 
+	// 1{c_a_1_howmany(GVAR_item_1,o_none,t-1),c_a_1_buy(GVAR_item_1,o_false,t-1)}1
+	boost::regex expr("([0-9 ]*)([{]){1}([A-Za-z0-9\\(\\),:<>=_\\+\\-\\*\\/ ]+)([}]){1}([0-9 ]*)"); 
+	std::string::const_iterator start, end; 
+	start = input.begin(); 
+	end = input.end();
+	boost::match_results<std::string::const_iterator> what;
+
+	boost::match_flag_type flags = boost::match_default;
+
+	std::string prefix("");
+	std::string str("");
+	std::string suffix("");
+	if(boost::regex_search(start,end,what,expr,flags))
+	{
+		prefix = what.prefix();
+		str = what[0];
+		// start = what[0].second;
+	}
 	
-
-
-	output = input;
+	suffix = what.suffix();
+	
+	output = str;
 
 	if(boost::regex_match(output,expr))
 	{
@@ -297,7 +314,7 @@ int clingo3to4::match_counting_literal_rule(std::string& output, const std::stri
 		// 1 { q(X,Y): p(X): p(Y): X < Y, q(X,X): p(X)   } 1 
 		for (size_t i = 0; i < output.length(); ++i)
 		{
-			if (output[i] == ':')
+			if (output[i] == ':')	
 			{
 			
 				if(count != 0)
@@ -316,14 +333,12 @@ int clingo3to4::match_counting_literal_rule(std::string& output, const std::stri
 			}
 		}
 
-		
+		output = prefix + output + suffix;		
 		return 1;
 	}
 	else
 		return 0;
 }
-
-
 
 /*
 Clingo 4 does not support #hide and #base clauses
