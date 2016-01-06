@@ -143,7 +143,7 @@ int clingo3to4::convert_file(const char *argv[],bool stdout)
 	}
 	else
 	{
-		input_file_name = argv[3];
+		input_file_name = argv[2];
 	}
 
 
@@ -319,13 +319,13 @@ int clingo3to4::match_counting_literal_rule(std::string& output, const std::stri
 		{
 			if(output[i] == '(')
 			{
-				inside_paren = 1;
+				inside_paren += 1;
 				continue;
 			}
 
 			if(output[i] == ')')
 			{
-				inside_paren = 0;
+				inside_paren -= 1;
 				continue;
 			}
 
