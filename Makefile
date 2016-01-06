@@ -6,7 +6,7 @@ CFLAGS = -g
 
 INCLUDES = -I/use/include/boost
 
-LFALGS = -L/usr/lib/x86_64-linux-gnu/ 
+LFALGS = -L/usr/lib/x86_64-linux-gnu/
 
 LIBS = -lboost_regex -lboost_program_options
 

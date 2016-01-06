@@ -13,6 +13,7 @@ int clingo3to4::convert(const int argc,const char *argv[])
 	desc.add_options()
 		("help,h","Produce help message")
 		("stdin,s","Use this option to read from stdin. This is the default.")
+		("stdout,o","Use this option to output to stdin when reading from file.")
 		("file,f",po::value<std::string>(),"Use this option to read from file");
 	
 	try
@@ -36,7 +37,14 @@ int clingo3to4::convert(const int argc,const char *argv[])
 
 		else if (vm.count("file"))
 		{
-			clingo3to4::convert_file(argv);
+			if (vm.count("stdout"))
+			{
+				clingo3to4::convert_file(argv,true);	
+			}
+			else
+			{
+				clingo3to4::convert_file(argv,false);
+			}
 		}
 		
 		// If no input arguments are given it defaults to stdin
@@ -123,7 +131,7 @@ int clingo3to4::convert_stdin(const char *argv[])
 	}
 }
 
-int clingo3to4::convert_file(const char *argv[])
+int clingo3to4::convert_file(const char *argv[],bool stdout)
 {
 	const char *input_file_name;
 	// const char *output_file_name = "output.l";
@@ -135,20 +143,23 @@ int clingo3to4::convert_file(const char *argv[])
 	}
 	else
 	{
-		input_file_name = argv[2];
+		input_file_name = argv[3];
 	}
 
+
 	std::ifstream file(input_file_name, std::ios_base::in | std::ios_base::binary);
-	
+	// std::ofstream outfile;
+
+
 	char *output_file_name = (char *) malloc (sizeof(char*) * (strlen(argv[1]) + strlen(OUTPUT_EXTN)));
 	strcpy(output_file_name,input_file_name);
 	strcat(output_file_name,OUTPUT_EXTN);
+	std::ofstream outfile(output_file_name);	
 	
-	std::ofstream outfile(output_file_name);
-
-	if(!outfile.is_open())
+	if(!outfile.is_open() && !stdout)
 	{
 		std::cerr << "Couldn't open output.l \n";
+		// delete outfile;
 		return -1;
 	}
 
@@ -171,7 +182,10 @@ int clingo3to4::convert_file(const char *argv[])
 
 	            	if(str.compare(0,1,COMMENT) == 0)
 					{
-						outfile << str.append(NEWLINE);
+						if(!stdout)
+							outfile << str.append(NEWLINE);
+						else
+							std::cout << str.append(NEWLINE);
 						continue;
 					}
 	            	
@@ -209,7 +223,10 @@ int clingo3to4::convert_file(const char *argv[])
 
             			if (output.size() > 2)
         				{
-        					outfile << output;
+        					if(!stdout)
+        						outfile << output;
+        					else
+        						std::cout << output;
         					#ifdef DEBUG
         						std::cout<<output<<std::endl;
         					#endif
@@ -222,8 +239,10 @@ int clingo3to4::convert_file(const char *argv[])
 
 	        }
 	    }
-	    catch(...) {
-	         std::cout << "Bad File" << '\n';
+	    catch(std::exception& e) {
+	         std::cout << e.what() << '\n';
+	         // if(!stdout)
+	         // 	delete outfile;
 	         return -1;
 	    }
 	}
@@ -232,7 +251,11 @@ int clingo3to4::convert_file(const char *argv[])
 		std::cerr << "File could not be opened!\n";
 		std::cerr << "Usage: clingo3to4 <input file>"<<"\n";	
 	}
-   return 0;
+	// if(!stdout)
+	// {
+	// 	delete outfile;
+	// }
+   	return 0;
 }
 
 int clingo3to4::match_normal_rule(std::string& output, const std::string& input)
@@ -270,6 +293,11 @@ int clingo3to4::match_counting_literal_rule(std::string& output, const std::stri
 		prefix = what.prefix();
 		str = what[0];
 		// start = what[0].second;
+	}
+	else
+	{
+		//if it cannot find anything that matches our regex we exit
+		return 0;
 	}
 	
 	suffix = what.suffix();

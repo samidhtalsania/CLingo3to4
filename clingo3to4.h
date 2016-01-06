@@ -7,7 +7,7 @@ public:
 	
 private:
 	
-	int convert_file(const char* argv[]);
+	int convert_file(const char* argv[],bool stdout);
 	int convert_stdin(const char* argv[]);
 	int match_normal_rule(std::string& output, const std::string& input);
 	int match_counting_literal_rule(std::string& output, const std::string& input);
