@@ -23,6 +23,20 @@
 #define WHITESPACE "\t \n"
 #define HASHTAG "#"
 #define NEWLINE "\n"
-#define OUTPUT_EXTN ".cl\0" 
+#define OUTPUT_EXTN ".cl\0"
+
+#define HIDE "#hide"
+
+// Constants for incremental parts of the program
+
+#define QUERY "query"
+#define IBASE "#base"
+#define ICUMULATIVE "#cumulative"
+#define IVOLATILE "#volatile"
+#define PRGBASE "#program base"
+#define PRGCUMULATIVE "#program step"
+#define PRGVOLATILE "#program check"
+#define PRGQUERY "query"
+
 
 namespace ba = boost::algorithm;

@@ -1,19 +1,20 @@
 #include "clingo3to4.h"
 #include "domain.h"
 
+#define NEGATION ":-"
 
 namespace io = boost::iostreams; 
 namespace po = boost::program_options; 
 
-int clingo3to4::convert(const int argc,const char *argv[])
-{	
+int clingo3to4::convert(const int argc,const char *argv[]){	
 	// int parse_op = clingo3to4::parse_input_args(argc,argv);
 
 	po::options_description desc("Options");
 	desc.add_options()
 		("help,h","Produce help message")
 		("stdin,s","Use this option to read from stdin. This is the default.")
-		("stdout,o","Use this option to output to stdin when reading from file.")
+		("stdout,o","Use this option to output to stdout when reading from file.")
+		("incremental,i","Use this option to output iclingo compatible file.")
 		("file,f",po::value<std::string>(),"Use this option to read from file");
 	
 	try
@@ -30,28 +31,37 @@ int clingo3to4::convert(const int argc,const char *argv[])
 			std::cout<< desc << std::endl;
 		}
 
-		else if (vm.count("stdin"))
+		if(vm.count("incremental")){
+			clingo3to4::set_incremental(true);
+		}
+
+		setup_clauses();
+
+		if (vm.count("stdin"))
 		{
 			clingo3to4::convert_stdin(argv);	
 		}
 
 		else if (vm.count("file"))
 		{
-			if (vm.count("stdout"))
-			{
-				clingo3to4::convert_file(argv,true);	
+			std::string filename = vm["file"].as<std::string>();
+			if (vm.count("stdout")){
+				clingo3to4::convert_file(argv,true,filename);	
 			}
-			else
-			{
-				clingo3to4::convert_file(argv,false);
+			else{
+				clingo3to4::convert_file(argv,false,filename);
 			}
 		}
 		
 		// If no input arguments are given it defaults to stdin
-		else
-		{
+		else{
 			clingo3to4::convert_stdin(argv);
 		}
+
+
+
+
+		
 	}
 
 	catch(po::error& e) 
@@ -70,8 +80,7 @@ int clingo3to4::convert(const int argc,const char *argv[])
 	return 0;
 }
 
-int clingo3to4::convert_stdin(const char *argv[])
-{
+int clingo3to4::convert_stdin(const char *argv[]){
 	std::string str; 
 	while (std::getline(std::cin, str)) 
 	{
@@ -131,20 +140,13 @@ int clingo3to4::convert_stdin(const char *argv[])
 	}
 }
 
-int clingo3to4::convert_file(const char *argv[],bool stdout)
-{
+int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename){
 	const char *input_file_name;
 	// const char *output_file_name = "output.l";
 	
-	if ((argv[2] != NULL) && (argv[2] == '\0')) 
-	{
-	   std::cout<<"Usage: clingo3to4 <input file>"<<std::endl;
-	   return 0;
-	}
-	else
-	{
-		input_file_name = argv[2];
-	}
+	
+	input_file_name = filename.c_str();
+	
 
 
 	std::ifstream file(input_file_name, std::ios_base::in | std::ios_base::binary);
@@ -249,7 +251,7 @@ int clingo3to4::convert_file(const char *argv[],bool stdout)
 	else
 	{
 		std::cerr << "File could not be opened!\n";
-		std::cerr << "Usage: clingo3to4 <input file>"<<"\n";	
+		std::cerr << "Type clingo3to4 -h for help."<<"\n";	
 	}
 	// if(!stdout)
 	// {
@@ -258,8 +260,7 @@ int clingo3to4::convert_file(const char *argv[],bool stdout)
    	return 0;
 }
 
-int clingo3to4::match_normal_rule(std::string& output, const std::string& input)
-{
+int clingo3to4::match_normal_rule(std::string& output, const std::string& input){
 	boost::regex expr("([ a-zA-Z0-9\\(\\)]+)(:-){1}([ ,.a-zA-Z0-9\\(\\)]+)"); 
 	if(boost::regex_match(input,expr))
 	{
@@ -274,8 +275,7 @@ int clingo3to4::match_normal_rule(std::string& output, const std::string& input)
 }
 
 //need to optimize this
-int clingo3to4::match_counting_literal_rule(std::string& output, const std::string& input)
-{
+int clingo3to4::match_counting_literal_rule(std::string& output, const std::string& input){
 	// 1{c_a_1_howmany(GVAR_item_1,o_none,t-1),c_a_1_buy(GVAR_item_1,o_false,t-1)}1
 	boost::regex expr("([0-9 ]*)([{]){1}([A-Za-z0-9\\(\\),:<>=_\\+\\-\\*\\/ ]+)([}]){1}([0-9 ]*)"); 
 	std::string::const_iterator start, end; 
@@ -369,25 +369,49 @@ int clingo3to4::match_counting_literal_rule(std::string& output, const std::stri
 }
 
 /*
-Clingo 4 does not support #hide and #base clauses
+Clingo 4 does not support #hide clause
 */
 
-int clingo3to4::match_hide_base_rule(std::string& output, const std::string& input)
-{
+int clingo3to4::match_clause_rule(std::string& output, const std::string& input){
 	output = input;
-
-	//c++ true = 1 false = 0
-	std::string hide("#hide");
-	std::string base("#base");
-	std::vector<std::string> clauses;
-	clauses.push_back(hide);
-	clauses.push_back(base);
 
 	for (int i = 0; i < clauses.size(); ++i)
 	{
 		if (output.find(clauses.at(i)) != std::string::npos)
 		{
-			output.insert(0, COMMENT);
+			//If it is in incremental mode then dont comment out base,cumulative and volatile
+			if(get_incremental())
+			{	
+				if(clauses.at(i) == IBASE)
+				{
+					set_current_scope(BASE);
+					boost::replace_all(output,IBASE,PRGBASE);
+
+				}
+				else if(clauses.at(i) == ICUMULATIVE)
+				{
+					
+					set_current_scope(CUMULATIVE);
+					std::string cum_var_string(std::string(PAREN_OPEN) + input.at(input.length()-1) + PAREN_CLOSE);
+					boost::algorithm::replace_all(output,input,PRGCUMULATIVE + cum_var_string);
+					
+				}
+				else if(clauses.at(i) == IVOLATILE)
+				{
+					set_current_scope(VOLATILE);
+					std::string vol_var_string(std::string(PAREN_OPEN) + input.at(input.length()-1) + PAREN_CLOSE);
+					clingo3to4::set_volatile_query(std::string(1,input.at(input.length()-1)));
+					boost::algorithm::replace_all(output,input,PRGVOLATILE + vol_var_string);
+				}
+			}
+			if(clauses.at(i) == HIDE)
+			{
+				//It is #hide. Comment it.
+				#ifdef DEBUG
+					std::cout<<"Hide rule matched"<<std::endl;
+				#endif
+				output.insert(0, COMMENT);	
+			}
 			return 1;
 		}
 	}
@@ -395,16 +419,39 @@ int clingo3to4::match_hide_base_rule(std::string& output, const std::string& inp
 	return 0;
 }
 
+
+int clingo3to4::match_volatile_rule(std::string& output, const std::string& input){
+	output = input;
+	if(boost::algorithm::starts_with(input,NEGATION) && get_scope() == VOLATILE){
+		output.append(COMMA)
+			 .append(std::string(PRGQUERY) + PAREN_OPEN + clingo3to4::get_volatile_query() + PAREN_CLOSE);
+		return 1;
+	}
+	return 0;
+}	
+
+
+void clingo3to4::setup_clauses(){
+	clauses.push_back(std::string("#hide"));
+	if(get_incremental())
+	{
+		clauses.push_back(std::string(IBASE));
+		clauses.push_back(std::string(ICUMULATIVE));
+		clauses.push_back(std::string(IVOLATILE));
+	}
+}
+
+
 //Every string will match one of these rules. If it wont match the string is written as it is.
 //Every string after its transformation also needs to be checked for domain variables.
 //If it contains domain variables then in that case those variables need to be removed.
-int clingo3to4::match_rule(std::string& output, const std::string& input)
-{
-	if (match_hide_base_rule(output,input))
+int clingo3to4::match_rule(std::string& output, const std::string& input){
+	if (match_clause_rule(output,input))
 	{
 		#ifdef DEBUG
-			std::cout<<"hide rule matched"<<std::endl;
+			std::cout<<"Clause rule matched"<<std::endl;
 		#endif
+
 		return 1;
 	}
 	else if (match_counting_literal_rule(output,input))
@@ -428,6 +475,13 @@ int clingo3to4::match_rule(std::string& output, const std::string& input)
 		#endif
 		return 1;
 	}
+	else if (clingo3to4::match_volatile_rule(output,input))
+	{
+		#ifdef DEBUG
+			std::cout<<"volatile rule matched"<<std::endl;
+		#endif
+		return 1;
+	}
 	else
 	{
 		#ifdef DEBUG
@@ -438,12 +492,35 @@ int clingo3to4::match_rule(std::string& output, const std::string& input)
 }
 
 
-std::string clingo3to4::get_file_contents(const char *filename)
-{
+std::string clingo3to4::get_file_contents(const char *filename){
   std::ifstream in(filename, std::ios::in | std::ios::binary);
   if (in)
   {
     return(std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>()));
   }
   throw(errno);
+}
+
+void clingo3to4::set_incremental(bool is_incremental){
+	is_incremental = is_incremental;
+}
+
+bool clingo3to4::get_incremental(){
+	return is_incremental;
+}
+
+void clingo3to4::set_current_scope(IncrementalScope scope){
+	current_scope = scope; 
+}
+
+clingo3to4::IncrementalScope clingo3to4::get_scope(){
+	return current_scope;
+}
+
+void clingo3to4::set_volatile_query(const std::string& str){
+	vol_var_string = str;
+}
+
+std::string clingo3to4::get_volatile_query(){
+	return vol_var_string;
 }

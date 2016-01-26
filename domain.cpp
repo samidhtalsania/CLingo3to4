@@ -14,8 +14,7 @@ std::set<std::string> domain::search_domain_variables(const std::string& input)
 
     for (; iter != end; ++iter)
     {
-    	
-		domains.insert(std::string(*iter));
+    	domains.insert(std::string(*iter));
    	}
 	return domains;
 }

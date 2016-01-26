@@ -10,7 +10,7 @@ LFALGS = -L/usr/lib/x86_64-linux-gnu/
 
 LIBS = -lboost_regex -lboost_program_options
 
-SRCS = program.cpp clingo3to4.cpp domain.cpp
+SRCS = main.cpp clingo3to4.cpp domain.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 
