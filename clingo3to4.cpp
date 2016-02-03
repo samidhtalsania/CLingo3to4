@@ -3,6 +3,8 @@
 
 #define NEGATION ":-"
 
+
+
 namespace io = boost::iostreams; 
 namespace po = boost::program_options; 
 
@@ -87,7 +89,7 @@ int clingo3to4::convert_stdin(const char *argv[]){
 		if(!str.empty())
         {
 
-			//process str. Str can be a single line ex q(1,2).q(1,3). need to separate these commands process them individually
+			//process str. Str can be a single line ex q(1,2).q(1,3). need to separate these commands, process them individually
         	std::vector<std::string> ind_commands;
 
         	if(str.compare(0,1,COMMENT) == 0)
@@ -95,8 +97,7 @@ int clingo3to4::convert_stdin(const char *argv[]){
 				std::cout << str.append(NEWLINE);
 				continue;
 			}
-        	
-        	// First you need to check if it is a range statement.
+			// First you need to check if it is a range statement.
         	// Example. number(1..8) should not be split at the innner dots.
         	// One way to do this is convert the first pair of dots to ",," do the split then reconvert it back to ".."
         	std::size_t found = str.find("..");
@@ -136,6 +137,9 @@ int clingo3to4::convert_stdin(const char *argv[]){
 					#endif
 				}
 			}
+        }
+        else{
+        	std::cout << "\n";
         }
 	}
 }
@@ -238,6 +242,9 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
         				
             		}
 	            }
+	            else{
+        			std::cout << "\n";
+        		}
 
 	        }
 	    }
@@ -374,58 +381,46 @@ Clingo 4 does not support #hide clause
 
 int clingo3to4::match_clause_rule(std::string& output, const std::string& input){
 	output = input;
-
-	for (int i = 0; i < clauses.size(); ++i)
-	{
-		if (output.find(clauses.at(i)) != std::string::npos)
-		{
-			//If it is in incremental mode then dont comment out base,cumulative and volatile
-			if(get_incremental())
-			{	
-				if(clauses.at(i) == IBASE)
-				{
+	for (int i = 0; i < clauses.size(); ++i){
+		if (output.find(clauses.at(i)) != std::string::npos){
+			if(get_incremental() && clauses.at(i) != HIDE){
+				if(clauses.at(i) == IBASE){
 					set_current_scope(BASE);
 					boost::replace_all(output,IBASE,PRGBASE);
-
 				}
-				else if(clauses.at(i) == ICUMULATIVE)
-				{
-					
+				else if(clauses.at(i) == ICUMULATIVE){
 					set_current_scope(CUMULATIVE);
 					std::string cum_var_string(std::string(PAREN_OPEN) + input.at(input.length()-1) + PAREN_CLOSE);
 					boost::algorithm::replace_all(output,input,PRGCUMULATIVE + cum_var_string);
-					
 				}
-				else if(clauses.at(i) == IVOLATILE)
-				{
+				else if(clauses.at(i) == IVOLATILE){
 					set_current_scope(VOLATILE);
 					std::string vol_var_string(std::string(PAREN_OPEN) + input.at(input.length()-1) + PAREN_CLOSE);
 					clingo3to4::set_volatile_query(std::string(1,input.at(input.length()-1)));
 					boost::algorithm::replace_all(output,input,PRGVOLATILE + vol_var_string);
 				}
 			}
-			if(clauses.at(i) == HIDE)
-			{
-				//It is #hide. Comment it.
-				#ifdef DEBUG
-					std::cout<<"Hide rule matched"<<std::endl;
-				#endif
-				output.insert(0, COMMENT);	
+			else{
+				output.insert(0, COMMENT);
 			}
+
 			return 1;
 		}
 	}
-
+		
 	return 0;
 }
 
 
+
 int clingo3to4::match_volatile_rule(std::string& output, const std::string& input){
-	output = input;
-	if(boost::algorithm::starts_with(input,NEGATION) && get_scope() == VOLATILE){
-		output.append(COMMA)
-			 .append(std::string(PRGQUERY) + PAREN_OPEN + clingo3to4::get_volatile_query() + PAREN_CLOSE);
-		return 1;
+	if(get_incremental() && get_scope() == VOLATILE){
+		output = input;
+		if(boost::algorithm::starts_with(input,NEGATION) && get_scope() == VOLATILE){
+			output.append(COMMA)
+				 .append(std::string(PRGQUERY) + PAREN_OPEN + clingo3to4::get_volatile_query() + PAREN_CLOSE);
+			return 1;
+		}
 	}
 	return 0;
 }	
