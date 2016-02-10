@@ -36,6 +36,9 @@ int clingo3to4::convert(const int argc,const char *argv[]){
 		if(vm.count("incremental")){
 			clingo3to4::set_incremental(true);
 		}
+		else{
+			clingo3to4::set_incremental(false);	
+		}
 
 		setup_clauses();
 
@@ -384,7 +387,7 @@ int clingo3to4::match_clause_rule(std::string& output, const std::string& input)
 	for (int i = 0; i < clauses.size(); ++i){
 
 		if (output.find(clauses.at(i)) != std::string::npos){
-			if(get_incremental() && clauses.at(i) != HIDE){
+			if(get_incremental()){
 				if(clauses.at(i) == IBASE){
 					set_current_scope(BASE);
 					boost::replace_all(output,IBASE,PRGBASE);
@@ -418,14 +421,15 @@ int clingo3to4::match_clause_rule(std::string& output, const std::string& input)
 std::string clingo3to4::remove_abs(std::string& output){
 	std::size_t found;
 	while((found = output.find(ABS)) != std::string::npos){
-		output.replace(found,sizeof(ABS),PIPE);
+		output.replace(found,sizeof(ABS) - 1,PIPE);
 		int count = 0;
 		int i = 1;
 		do{
-			if(output.at(found + i++) == '(')
+			if(output.at(found + i) == '(')
 				count++;
-			if(output.at(found + i++) == ')')
+			if(output.at(found + i) == ')')
 				count--;
+			i++;
 		}while(count != 0); 
 		output.insert(found + i,PIPE);
 	}
@@ -518,7 +522,7 @@ std::string clingo3to4::get_file_contents(const char *filename){
 }
 
 void clingo3to4::set_incremental(bool is_incremental){
-	is_incremental = is_incremental;
+	this->is_incremental = is_incremental;
 }
 
 bool clingo3to4::get_incremental(){
