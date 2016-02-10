@@ -32,7 +32,7 @@ private:
 	int match_rule(std::string& output, const std::string& input);
 	int match_volatile_rule(std::string& output, const std::string& input);
 	std::string get_file_contents(const char *filename);
-	
+	std::string remove_abs(std::string& output);
 	
 	void set_incremental(bool is_incremental);
 	void set_current_scope(IncrementalScope scope);

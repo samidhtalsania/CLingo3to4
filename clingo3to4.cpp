@@ -382,6 +382,7 @@ Clingo 4 does not support #hide clause
 int clingo3to4::match_clause_rule(std::string& output, const std::string& input){
 	output = input;
 	for (int i = 0; i < clauses.size(); ++i){
+
 		if (output.find(clauses.at(i)) != std::string::npos){
 			if(get_incremental() && clauses.at(i) != HIDE){
 				if(clauses.at(i) == IBASE){
@@ -400,8 +401,11 @@ int clingo3to4::match_clause_rule(std::string& output, const std::string& input)
 					boost::algorithm::replace_all(output,input,PRGVOLATILE + vol_var_string);
 				}
 			}
-			else{
+			else if(clauses.at(i) == HIDE){
 				output.insert(0, COMMENT);
+			}
+			else if(clauses.at(i) == ABS){
+				output = remove_abs(output);
 			}
 
 			return 1;
@@ -411,6 +415,22 @@ int clingo3to4::match_clause_rule(std::string& output, const std::string& input)
 	return 0;
 }
 
+std::string clingo3to4::remove_abs(std::string& output){
+	std::size_t found;
+	while((found = output.find(ABS)) != std::string::npos){
+		output.replace(found,sizeof(ABS),PIPE);
+		int count = 0;
+		int i = 1;
+		do{
+			if(output.at(found + i++) == '(')
+				count++;
+			if(output.at(found + i++) == ')')
+				count--;
+		}while(count != 0); 
+		output.insert(found + i,PIPE);
+	}
+	return output;
+}
 
 
 int clingo3to4::match_volatile_rule(std::string& output, const std::string& input){
@@ -428,6 +448,7 @@ int clingo3to4::match_volatile_rule(std::string& output, const std::string& inpu
 
 void clingo3to4::setup_clauses(){
 	clauses.push_back(std::string("#hide"));
+	clauses.push_back(std::string("#abs"));
 	if(get_incremental())
 	{
 		clauses.push_back(std::string(IBASE));

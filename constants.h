@@ -26,6 +26,8 @@
 #define OUTPUT_EXTN ".cl\0"
 
 #define HIDE "#hide"
+#define ABS "#abs"
+#define PIPE "|"
 
 // Constants for incremental parts of the program
 
