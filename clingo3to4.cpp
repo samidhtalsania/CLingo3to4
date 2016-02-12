@@ -11,7 +11,7 @@ namespace po = boost::program_options;
 int clingo3to4::convert(const int argc,const char *argv[]){	
 	// int parse_op = clingo3to4::parse_input_args(argc,argv);
 
-	po::options_description desc("Options");
+	po::options_description desc("Clingo3to4 V1.0 Build 11021601\n\n\nOptions");
 	desc.add_options()
 		("help,h","Produce help message")
 		("stdin,s","Use this option to read from stdin. This is the default.")
@@ -31,6 +31,7 @@ int clingo3to4::convert(const int argc,const char *argv[]){
 		if (vm.count("help"))
 		{
 			std::cout<< desc << std::endl;
+			return 0;
 		}
 
 		if(vm.count("incremental")){
@@ -157,19 +158,20 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 
 
 	std::ifstream file(input_file_name, std::ios_base::in | std::ios_base::binary);
-	// std::ofstream outfile;
+	std::ofstream outfile;
 
-
-	char *output_file_name = (char *) malloc (sizeof(char*) * (strlen(argv[1]) + strlen(OUTPUT_EXTN)));
-	strcpy(output_file_name,input_file_name);
-	strcat(output_file_name,OUTPUT_EXTN);
-	std::ofstream outfile(output_file_name);	
-	
-	if(!outfile.is_open() && !stdout)
-	{
-		std::cerr << "Couldn't open output.l \n";
-		// delete outfile;
-		return -1;
+	if(!stdout){
+		char *output_file_name = (char *) malloc (sizeof(char*) * (strlen(argv[1]) + strlen(OUTPUT_EXTN)));
+		strcpy(output_file_name,input_file_name);
+		strcat(output_file_name,OUTPUT_EXTN);
+		outfile.open(output_file_name);	
+		
+		if(!outfile.is_open()){
+			std::cerr << "Couldn't open output.l \n";
+			// delete outfile;
+			outfile.close();
+			return -1;
+		}
 	}
 
     if(file)
@@ -246,15 +248,17 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
             		}
 	            }
 	            else{
-        			std::cout << "\n";
+	            	if(!stdout)
+						outfile << "\n";
+					else
+						std::cout << "\n";
         		}
 
 	        }
 	    }
 	    catch(std::exception& e) {
 	         std::cout << e.what() << '\n';
-	         // if(!stdout)
-	         // 	delete outfile;
+	         outfile.close();
 	         return -1;
 	    }
 	}
@@ -263,10 +267,10 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 		std::cerr << "File could not be opened!\n";
 		std::cerr << "Type clingo3to4 -h for help."<<"\n";	
 	}
-	// if(!stdout)
-	// {
-	// 	delete outfile;
-	// }
+
+	if(outfile.is_open()){
+		outfile.close();
+	}
    	return 0;
 }
 
@@ -448,7 +452,7 @@ std::string clingo3to4::remove_sum(std::string& input){
 		// 6:=
 		// 7:VAR3
 		// 8:]
-		
+
 		return input;
 	}
 }
