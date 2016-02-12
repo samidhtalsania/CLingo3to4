@@ -47,6 +47,10 @@ namespace ba = boost::algorithm;
 
 std::vector< std::pair<std::string,std::string> > domain_list;
 
+std::string remove_sum(const std::string& input){
+	
+}
+
 std::set<std::string> search_domain_variables(const std::string& input)
 {
 	std::set<std::string> domains;

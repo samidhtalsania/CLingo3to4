@@ -27,6 +27,7 @@
 
 #define HIDE "#hide"
 #define ABS "#abs"
+#define SUM "#sum"
 #define PIPE "|"
 
 // Constants for incremental parts of the program

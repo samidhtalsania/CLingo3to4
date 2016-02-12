@@ -385,7 +385,6 @@ Clingo 4 does not support #hide clause
 int clingo3to4::match_clause_rule(std::string& output, const std::string& input){
 	output = input;
 	for (int i = 0; i < clauses.size(); ++i){
-
 		if (output.find(clauses.at(i)) != std::string::npos){
 			if(get_incremental()){
 				if(clauses.at(i) == IBASE){
@@ -404,18 +403,54 @@ int clingo3to4::match_clause_rule(std::string& output, const std::string& input)
 					boost::algorithm::replace_all(output,input,PRGVOLATILE + vol_var_string);
 				}
 			}
-			else if(clauses.at(i) == HIDE){
+			if(clauses.at(i) == HIDE){
 				output.insert(0, COMMENT);
 			}
 			else if(clauses.at(i) == ABS){
 				output = remove_abs(output);
 			}
+			else if(clauses.at(i) == SUM){
+				output = remove_sum(output);
+			}
+			//f2lp outputs #base in some cases even when the mode is not incremental.
+			else if(clauses.at(i) == IBASE && !get_incremental()){
+				output.insert(0, COMMENT);
+			}
 
 			return 1;
+
 		}
 	}
+	
+
 		
 	return 0;
+}
+
+std::string clingo3to4::remove_sum(std::string& input){
+	if(input.find("#sum")!=std::string::npos){
+		//std::string str("VAR1=#sum[contrib_vel(GVAR_axis_1,ACTION,VAR3,AT-1):additiveconst_action(c_f_1_vel(GVAR_axis_1),ACTION):s_afValue(VAR3)=VAR3]");
+		std::string::const_iterator start, end;
+   		start = input.begin();
+   		end = input.end();
+   		boost::match_results<std::string::const_iterator> what;
+   		boost::match_flag_type flags = boost::match_default;
+		boost::regex expr("([A-Za-z0-9_]+)(=){1}(#sum){1}(\\[){1}([A-Za-z0-9_:\\(\\)\\,\\-\\+\\*\\/]+)(=){1}([A-Za-z0-9_]+)(\\]){1}");
+		if(regex_search(start, end, what, expr, flags)){
+			input = what.prefix()+what[1]+what[2]+what[3]+"{"+what[7]+":"+boost::regex_replace(what[5].str(),boost::regex("(:)"),",")+"}"+what.suffix();
+		}
+		// 0:VAR1=#sum[contrib_vel(GVAR_axis_1,ACTION,VAR3,AT-1):additiveconst_action(c_f_1_vel(GVAR_axis_1),ACTION):s_afValue(VAR3)=VAR3]
+		// 1:VAR1
+		// 2:=
+		// 3:#sum
+		// 4:[
+		// 5:contrib_vel(GVAR_axis_1,ACTION,VAR3,AT-1):additiveconst_action(c_f_1_vel(GVAR_axis_1),ACTION):s_afValue(VAR3)
+		// 6:=
+		// 7:VAR3
+		// 8:]
+		
+		return input;
+	}
 }
 
 std::string clingo3to4::remove_abs(std::string& output){
@@ -453,11 +488,17 @@ int clingo3to4::match_volatile_rule(std::string& output, const std::string& inpu
 void clingo3to4::setup_clauses(){
 	clauses.push_back(std::string("#hide"));
 	clauses.push_back(std::string("#abs"));
+	clauses.push_back(std::string("#sum"));
+
 	if(get_incremental())
 	{
 		clauses.push_back(std::string(IBASE));
 		clauses.push_back(std::string(ICUMULATIVE));
 		clauses.push_back(std::string(IVOLATILE));
+	}
+	else{
+		//f2lp outputs #base in some cases even when the mode is not incremental. 
+		clauses.push_back(std::string("#base"));
 	}
 }
 
