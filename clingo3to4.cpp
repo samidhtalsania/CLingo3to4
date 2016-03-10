@@ -11,7 +11,7 @@ namespace po = boost::program_options;
 int clingo3to4::convert(const int argc,const char *argv[]){	
 	// int parse_op = clingo3to4::parse_input_args(argc,argv);
 
-	po::options_description desc("Clingo3to4 V1.0 Build 11021601\n\n\nOptions");
+	po::options_description desc("Clingo3to4 V1.0 Build 12021601\n\n\nOptions");
 	desc.add_options()
 		("help,h","Produce help message")
 		("stdin,s","Use this option to read from stdin. This is the default.")
@@ -416,6 +416,9 @@ int clingo3to4::match_clause_rule(std::string& output, const std::string& input)
 			else if(clauses.at(i) == SUM){
 				output = remove_sum(output);
 			}
+			else if(clauses.at(i) == "query_label(query)"){
+				output.insert(17,"l");
+			}
 			//f2lp outputs #base in some cases even when the mode is not incremental.
 			else if(clauses.at(i) == IBASE && !get_incremental()){
 				output.insert(0, COMMENT);
@@ -493,6 +496,7 @@ void clingo3to4::setup_clauses(){
 	clauses.push_back(std::string("#hide"));
 	clauses.push_back(std::string("#abs"));
 	clauses.push_back(std::string("#sum"));
+	clauses.push_back(std::string("query_label(query)"));
 
 	if(get_incremental())
 	{

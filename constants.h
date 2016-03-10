@@ -37,9 +37,9 @@
 #define ICUMULATIVE "#cumulative"
 #define IVOLATILE "#volatile"
 #define PRGBASE "#program base"
-#define PRGCUMULATIVE "#program _py_step"
-#define PRGVOLATILE "#program _py_check"
-#define PRGQUERY "_py_query"
+#define PRGCUMULATIVE "#program step"
+#define PRGVOLATILE "#program check"
+#define PRGQUERY "query"
 
 
 namespace ba = boost::algorithm;
