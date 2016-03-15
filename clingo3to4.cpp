@@ -8,6 +8,8 @@
 namespace io = boost::iostreams; 
 namespace po = boost::program_options; 
 
+// #define DEBUG 1
+
 int clingo3to4::convert(const int argc,const char *argv[]){	
 	// int parse_op = clingo3to4::parse_input_args(argc,argv);
 
@@ -43,6 +45,8 @@ int clingo3to4::convert(const int argc,const char *argv[]){
 
 		setup_clauses();
 
+		clingo3to4::set_script(false);
+
 		if (vm.count("stdin"))
 		{
 			clingo3to4::convert_stdin(argv);	
@@ -63,11 +67,6 @@ int clingo3to4::convert(const int argc,const char *argv[]){
 		else{
 			clingo3to4::convert_stdin(argv);
 		}
-
-
-
-
-		
 	}
 
 	catch(po::error& e) 
@@ -122,10 +121,16 @@ int clingo3to4::convert_stdin(const char *argv[]){
     			std::string output(input_temp); 
 				
 				match_rule(output,input_temp);
-    			domain::remove_domain_variables(output,output);
-				output.append(DOT).append(NEWLINE);
-				
-				//Reversing the above operation
+				//If a python or lua script is present in code we dont want to do any processing
+				//for those commands just ingnore them and wrote them to file or output.
+				if(!get_script()){
+        			domain::remove_domain_variables(output,output);
+					output.append(DOT).append(NEWLINE);
+				}
+				else{
+					output.append(NEWLINE);	
+				}
+    			//Reversing the above operation
     			if(found != std::string::npos)
     			{
     				boost::replace_all(output, ",,", "..");
@@ -181,18 +186,22 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 	        io::filtering_istream in;
 	        
 	        in.push(file);
-	        
-	        for(std::string str; std::getline(in, str); )
+			
+			for(std::string str; std::getline(in, str); )
 	        {
 	            //str has all the lines
 	            if(!str.empty())
 	            {
 
-					//process str. Str can be a single line ex q(1,2).q(1,3). need to separate these commands process them individually
+					//process str. Str can be a single line ex q(1,2).q(1,3). need to separate these commands and process them individually
 	            	std::vector<std::string> ind_commands;
 
-	            	if(str.compare(0,1,COMMENT) == 0)
+	            	if(str.compare(0,1,COMMENT) == 0 || get_script())
 					{
+						// This is the only rule that is called outside of match_rule
+						// Once inside the script block, the script code is ignored
+						// We still need to fing end_script clause to get out of the script block
+						clingo3to4::match_lua_end_rule(str,str);
 						if(!stdout)
 							outfile << str.append(NEWLINE);
 						else
@@ -220,9 +229,16 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
             			std::string input_temp(ind_commands[i]);
             			std::string output(input_temp); 
 						
-						match_rule(output,input_temp);
-            			domain::remove_domain_variables(output,output);
-						output.append(DOT).append(NEWLINE);
+
+						//When this functions returns 2 it means that we dont want to append dot
+						// Currently only one directive in clingo4 requires this #script (lua/python) 
+						if(match_rule(output,input_temp) != 2){
+							domain::remove_domain_variables(output,output);
+							output.append(DOT).append(NEWLINE);
+						}
+						else{
+							output.append(NEWLINE);	
+						}
 						
 						//Reversing the above operation
             			if(found != std::string::npos)
@@ -241,11 +257,8 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
         					#ifdef DEBUG
         						std::cout<<output<<std::endl;
         					#endif
-        				}
-
-            			
-        				
-            		}
+        				}						
+					}
 	            }
 	            else{
 	            	if(!stdout)
@@ -419,6 +432,7 @@ int clingo3to4::match_clause_rule(std::string& output, const std::string& input)
 			else if(clauses.at(i) == "query_label(query)"){
 				output.insert(17,"l");
 			}
+			
 			//f2lp outputs #base in some cases even when the mode is not incremental.
 			else if(clauses.at(i) == IBASE && !get_incremental()){
 				output.insert(0, COMMENT);
@@ -515,39 +529,46 @@ void clingo3to4::setup_clauses(){
 //Every string after its transformation also needs to be checked for domain variables.
 //If it contains domain variables then in that case those variables need to be removed.
 int clingo3to4::match_rule(std::string& output, const std::string& input){
-	if (match_clause_rule(output,input))
-	{
+	if (match_clause_rule(output,input)){
 		#ifdef DEBUG
 			std::cout<<"Clause rule matched"<<std::endl;
 		#endif
 
 		return 1;
 	}
-	else if (match_counting_literal_rule(output,input))
-	{
+	else if (match_counting_literal_rule(output,input)){
 		#ifdef DEBUG
 			std::cout<<"counting rule matched"<<std::endl;
 		#endif
 		return 1;
 	}
-	else if (match_normal_rule(output,input))
-	{
+	else if (match_normal_rule(output,input)){
 		#ifdef DEBUG
 			std::cout<<"normal rule matched"<<std::endl;
 		#endif
 		return 1;
 	}
-	else if (domain::match_domain_rule(output,input))
-	{
+	else if (domain::match_domain_rule(output,input)){
 		#ifdef DEBUG
 			std::cout<<"domain rule matched"<<std::endl;
 		#endif
 		return 1;
 	}
-	else if (clingo3to4::match_volatile_rule(output,input))
-	{
+	else if (clingo3to4::match_volatile_rule(output,input)){
 		#ifdef DEBUG
 			std::cout<<"volatile rule matched"<<std::endl;
+		#endif
+		return 1;
+	}
+	else if (clingo3to4::match_lua_start_rule(output,input)){
+		#ifdef DEBUG
+			std::cout<<"start lua rule matched"<<std::endl;
+		#endif
+		return 2;
+	}
+	else if (clingo3to4::match_lua_end_rule(output,input)){
+		#ifdef DEBUG
+			std::cout<<"end lua rule matched"<<std::endl;
 		#endif
 		return 1;
 	}
@@ -558,6 +579,25 @@ int clingo3to4::match_rule(std::string& output, const std::string& input){
 		#endif
 		return 0;
 	}
+}
+
+bool clingo3to4::match_lua_start_rule(std::string &output, const std::string &input){
+	if(ba::contains(input,"begin_lua")){
+		clingo3to4::set_script(true);
+		output = "#script (lua)";	
+		return true;
+	}
+	return false;
+}
+
+
+bool clingo3to4::match_lua_end_rule(std::string &output, const std::string &input){
+	if(ba::contains(input,"end_lua")){
+		clingo3to4::set_script(false);
+		output = "#end.";
+		return true;
+	}
+	return false;
 }
 
 
@@ -574,8 +614,16 @@ void clingo3to4::set_incremental(bool is_incremental){
 	this->is_incremental = is_incremental;
 }
 
+void clingo3to4::set_script(bool is_script){
+	this->is_script = is_script;
+}
+
 bool clingo3to4::get_incremental(){
 	return is_incremental;
+}
+
+bool clingo3to4::get_script(){
+	return this->is_script;
 }
 
 void clingo3to4::set_current_scope(IncrementalScope scope){
