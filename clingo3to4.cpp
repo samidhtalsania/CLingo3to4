@@ -122,7 +122,7 @@ int clingo3to4::convert_stdin(const char *argv[]){
 				
 				match_rule(output,input_temp);
 				//If a python or lua script is present in code we dont want to do any processing
-				//for those commands just ingnore them and wrote them to file or output.
+				//for those commands just ingnore them and write them to file or output.
 				if(!get_script()){
         			domain::remove_domain_variables(output,output);
 					output.append(DOT).append(NEWLINE);
@@ -200,8 +200,11 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 					{
 						// This is the only rule that is called outside of match_rule
 						// Once inside the script block, the script code is ignored
-						// We still need to fing end_script clause to get out of the script block
+						// We still need to find end_script clause to get out of the script block
+						//Inside this block to make things simpler we are checking for the end of both lua and python code.
+						//Inside here we dont know which type of script is running so...
 						clingo3to4::match_lua_end_rule(str,str);
+						clingo3to4::match_python_end_rule(str,str);
 						if(!stdout)
 							outfile << str.append(NEWLINE);
 						else
@@ -572,8 +575,19 @@ int clingo3to4::match_rule(std::string& output, const std::string& input){
 		#endif
 		return 1;
 	}
-	else
-	{
+	else if (clingo3to4::match_python_start_rule(output,input)){
+		#ifdef DEBUG
+			std::cout<<"start python rule matched"<<std::endl;
+		#endif
+		return 2;
+	}
+	else if (clingo3to4::match_python_end_rule(output,input)){
+		#ifdef DEBUG
+			std::cout<<"end python rule matched"<<std::endl;
+		#endif
+		return 1;
+	}
+	else{
 		#ifdef DEBUG
 			std::cout<<"No rule matched"<<std::endl;
 		#endif
@@ -590,6 +604,15 @@ bool clingo3to4::match_lua_start_rule(std::string &output, const std::string &in
 	return false;
 }
 
+bool clingo3to4::match_python_start_rule(std::string &output, const std::string &input){
+	if(ba::contains(input,"begin_python")){
+		clingo3to4::set_script(true);
+		output = "#script (python)";	
+		return true;
+	}
+	return false;
+}
+
 
 bool clingo3to4::match_lua_end_rule(std::string &output, const std::string &input){
 	if(ba::contains(input,"end_lua")){
@@ -600,6 +623,14 @@ bool clingo3to4::match_lua_end_rule(std::string &output, const std::string &inpu
 	return false;
 }
 
+bool clingo3to4::match_python_end_rule(std::string &output, const std::string &input){
+	if(ba::contains(input,"end_python")){
+		clingo3to4::set_script(false);
+		output = "#end.";
+		return true;
+	}
+	return false;
+}
 
 std::string clingo3to4::get_file_contents(const char *filename){
   std::ifstream in(filename, std::ios::in | std::ios::binary);
