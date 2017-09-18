@@ -1,6 +1,7 @@
 #include "domain.h"
 
-std::vector< std::pair<std::string,std::string> > domain::domain_list;
+// std::vector< std::pair<std::string,std::string> > domain::domain_list;
+std::unordered_map<std::string,std::string> domain::domain_list;
 
 std::set<std::string> domain::search_domain_variables(const std::string& input)
 {
@@ -26,7 +27,7 @@ int domain::isDomain(const std::string& input)
 	return regex_match(input,expr) ? 1 : 0 ;
 }
 
-std::pair<std::string,std::string> domain::get_domain_variables(const std::string& input)
+void domain::get_domain_variables(const std::string& input)
 {
 	std::string::const_iterator start, end; 
 	start = input.begin(); 
@@ -41,9 +42,10 @@ std::pair<std::string,std::string> domain::get_domain_variables(const std::strin
 
 	std::string variable(what[what.size()-3]+what[what.size()-2]);
 	std::string identifier(what[what.size()-6]+what[what.size()-5]);
-	std::pair <std::string,std::string> domain (variable,identifier);
+	// std::pair <std::string,std::string> domain (variable,identifier);
+	domain_list[variable] = identifier;
 
-	return domain;
+	// return domain;
 }
 
 
@@ -56,9 +58,10 @@ int domain::match_domain_rule(std::string& output, const std::string& input)
 	if(isDomain(input))
 	{
 		// The sentence is a domain. Extract Domain identfier and domain variable and put it in a list
-
-		domain_list.push_back(get_domain_variables(input));
+		get_domain_variables(input);
+		//domain_list.push_back(get_domain_variables(input));
 		// Comment out the domain as it is no longer used
+
 		output.insert(0,COMMENT);
 		return 1;
 	}
@@ -117,18 +120,19 @@ void domain::remove_domain_variables(std::string& output,const std::string& inpu
 
 			for (i = domains.begin(); i != domains.end(); ++i)
 			{
-				for (int j = 0; j < domain_list.size(); ++j)
-				{
-					if ((*i).compare(domain_list.at(j).first) == 0)
+				// for (int j = 0; j < domain_list.size(); ++j)
+				// {
+					// if ((*i).compare(domain_list.at(j).first) == 0)
+					if(domain_list.find(*i) != domain_list.end())
 					{
-						generated_string.append(domain_list.at(j).second)
+						generated_string.append(domain_list[*i])
 						.append(PAREN_OPEN)
-						.append(domain_list.at(j).first)
+						.append(*i)
 						.append(PAREN_CLOSE)
 						.append(COMMA);
 						is_domain_added = 1;
 					}
-				}
+				// }
 			}
 
 			/* The last clause will have a trailing comma, remove that*/

@@ -2,7 +2,7 @@
 #include "domain.h"
 
 #define NEGATION ":-"
-
+#define WC_NEGATION ":~"
 
 
 namespace io = boost::iostreams; 
@@ -110,7 +110,7 @@ int clingo3to4::convert_stdin(const char *argv[]){
         		boost::replace_all(str, "..", ",,");
         	}
 
-    		boost::split(ind_commands,str,boost::is_any_of(DOT));
+    		split(ind_commands,str,'.');
 
     		for (int i = 0; i < ind_commands.size(); ++i)
     		{
@@ -151,6 +151,40 @@ int clingo3to4::convert_stdin(const char *argv[]){
         	std::cout << "\n";
         }
 	}
+}
+
+void clingo3to4::split(std::vector<std::string>& container, std::string& str, char separator){
+	if(str.length() == 0) return;
+	if(!separator) return;
+
+	std::unordered_map<char, char> map({{'"', '"'},{'{','}'},{'(',')'}});
+	std::unordered_set<char> set({'"','}',')'});
+
+	int start = 0 , end = start+1;
+	std::stack<char> mystack;
+ 
+
+	while(end < str.length()){
+		if(map.find(str[end]) != map.end()){
+			mystack.push(str[end]);
+			if(mystack.top() == '"'){
+				mystack.pop();
+				while(str[end++] != '"');
+				end--;
+			}
+		}
+		else if(set.find(str[end]) != set.end() && map[mystack.top()] == str[end]){
+			mystack.pop();
+		}
+		else if(str[end] == separator){
+			if(mystack.size() == 0){
+				container.push_back(str.substr(start, end - start));
+				start = end + 1;
+			}
+		}
+		end++;
+	}
+	container.push_back(str.substr(start, end - start));
 }
 
 int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename){
@@ -222,7 +256,13 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 	            		boost::replace_all(str, "..", ",,");
 	            	}
 
-            		boost::split(ind_commands,str,boost::is_any_of(DOT));
+	            	found = str.find(":~");
+
+	            	if(str.find(WC_NEGATION) == std::string::npos)
+						//boost::split(ind_commands,str,boost::is_any_of(DOT));
+						split(ind_commands,str,'.');
+					else
+						ind_commands.push_back(str);
 
             		for (int i = 0; i < ind_commands.size(); ++i)
             		{
@@ -291,7 +331,7 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 }
 
 int clingo3to4::match_normal_rule(std::string& output, const std::string& input){
-	boost::regex expr("([ a-zA-Z0-9\\(\\)]+)(:-){1}([ ,.a-zA-Z0-9\\(\\)]+)"); 
+	boost::regex expr("([ a-zA-Z0-9\\(\\)\"-.]+)(:-){1}([ ,.a-zA-Z0-9\\(\\)\"-.]+)"); 
 	if(boost::regex_match(input,expr))
 	{
 		boost::regex comma_expr("(,)");
@@ -307,7 +347,7 @@ int clingo3to4::match_normal_rule(std::string& output, const std::string& input)
 //need to optimize this
 int clingo3to4::match_counting_literal_rule(std::string& output, const std::string& input){
 	// 1{c_a_1_howmany(GVAR_item_1,o_none,t-1),c_a_1_buy(GVAR_item_1,o_false,t-1)}1
-	boost::regex expr("([0-9 ]*)([{]){1}([A-Za-z0-9\\(\\),:<>=_\\+\\-\\*\\/ ]+)([}]){1}([0-9 ]*)"); 
+	boost::regex expr("([0-9 ]*)([{]){1}([A-Za-z0-9\\(\\),:<>=_\\+\\-\\*\\/ \"-.]+)([}]){1}([0-9 ]*)"); 
 	std::string::const_iterator start, end; 
 	start = input.begin(); 
 	end = input.end();
@@ -459,7 +499,7 @@ std::string clingo3to4::remove_sum(std::string& input){
    		end = input.end();
    		boost::match_results<std::string::const_iterator> what;
    		boost::match_flag_type flags = boost::match_default;
-		boost::regex expr("([A-Za-z0-9_]+)(=){1}(#sum){1}(\\[){1}([A-Za-z0-9_:\\(\\)\\,\\-\\+\\*\\/]+)(=){1}([A-Za-z0-9_]+)(\\]){1}");
+		boost::regex expr("([A-Za-z0-9_]+)(=){1}(#sum){1}(\\[){1}([A-Za-z0-9_:\\(\\)\\,\\-\\+\\*\\/ \"-.]+)(=){1}([A-Za-z0-9_ \"-.]+)(\\]){1}");
 		if(regex_search(start, end, what, expr, flags)){
 			input = what.prefix()+what[1]+what[2]+what[3]+"{"+what[7]+":"+boost::regex_replace(what[5].str(),boost::regex("(:)"),",")+"}"+what.suffix();
 		}
@@ -587,6 +627,12 @@ int clingo3to4::match_rule(std::string& output, const std::string& input){
 		#endif
 		return 1;
 	}
+	else if (clingo3to4::match_weak_constarints_rule(output,input)){
+		#ifdef DEBUG
+			std::cout<<"end python rule matched"<<std::endl;
+		#endif
+		return 2;
+	}
 	else{
 		#ifdef DEBUG
 			std::cout<<"No rule matched"<<std::endl;
@@ -640,6 +686,45 @@ std::string clingo3to4::get_file_contents(const char *filename){
   }
   throw(errno);
 }
+
+int clingo3to4::match_weak_constarints_rule(std::string& output, const std::string& input){
+	boost::regex expr("(:~){1}([ ,a-zA-Z0-9\\(\\)\"-.]+)(\\[){1}([ ,a-zA-Z0-9\\(\\)\".@-]+)(\\]){1}");
+	
+	// boost::regex expr("(:~){1}(\\[){1}(\\]){1}"); 
+	if(boost::algorithm::starts_with(input,WC_NEGATION)){
+		std::string::const_iterator start, end; 
+		start = input.begin(); 
+		end = input.end();
+		boost::match_results<std::string::const_iterator> what;
+
+		boost::match_flag_type flags = boost::match_default;
+
+		if(boost::regex_search(start, end, what, expr, flags)){
+			// for(int i = 0 ; i < what.size() ; i++)
+			// 	std::cout << what[i] << "\n";	
+			std::string str = what[2];
+			int i = str.length();
+			while(i-->0 && str[i] != '.')
+				str.pop_back();
+			str.pop_back();
+			domain::remove_domain_variables(output,str);
+			boost::replace_all(output, ":-", ",");
+			output = what[1] + output + "." + what[3] + what[4] + what[5] + "\n";
+			
+			// :~unsat(1,"-1",X). [-1@0,1,X]
+			// :~
+			// unsat(1,"-1",X). 
+			// [
+			// -1@0,1,X
+			// ]
+
+		}
+	}
+	return 1;
+
+}
+
+
 
 void clingo3to4::set_incremental(bool is_incremental){
 	this->is_incremental = is_incremental;

@@ -1,2 +1,7 @@
 *.o
 *.txt
+input
+input.cl
+clingo3to4
+test
+test.cpp

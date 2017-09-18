@@ -5,6 +5,10 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <stack>
+#include <unordered_set>
+#include <unordered_map>
+
 
 #include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>

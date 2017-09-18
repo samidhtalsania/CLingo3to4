@@ -37,6 +37,7 @@ class clingo3to4
 		int match_clause_rule(std::string& output, const std::string& input);
 		int match_rule(std::string& output, const std::string& input);
 		int match_volatile_rule(std::string& output, const std::string& input);
+		int match_weak_constarints_rule(std::string& output, const std::string& input);
 		std::string get_file_contents(const char *filename);
 		std::string remove_abs(std::string& input);
 		std::string remove_sum(std::string& input);
@@ -55,5 +56,6 @@ class clingo3to4
 		bool match_python_end_rule(std::string& output, const std::string& input);
 		void set_script(bool is_script);
 		bool get_script();
+		void split(std::vector<std::string>& container, std::string& str, char separator);
 };
 
