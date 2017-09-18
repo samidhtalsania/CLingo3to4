@@ -277,11 +277,10 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 						// Currently only one directive in clingo4 requires this #script (lua/python) 
 						if(match_rule(output,input_temp) != 2){
 							domain::remove_domain_variables(output,output);
-							output.append(DOT).append(NEWLINE);
 						}
-						else{
-							output.append(NEWLINE);	
-						}
+						
+						output.append(DOT).append(NEWLINE);
+
 						
 						//Reversing the above operation
             			if(found != std::string::npos)
@@ -384,7 +383,7 @@ int clingo3to4::match_counting_literal_rule(std::string& output, const std::stri
 		//2 loops
 		// first loop changes all the commas separating two choice rules to semi colons
 		
-		//first loop
+		//first loopmat
 		for (size_t i = 0; i < output.length() ; ++i)
 		{
 			if(output[i] == '(')

@@ -2,9 +2,9 @@
 
 CC = g++
 
-CFLAGS = -g -O2
+CFLAGS = -g -O2 -std=c++11
 
-CXXFLAGS = -g -O2
+CXXFLAGS = -g -O2 -std=c++11
 
 INCLUDES = -I/use/include/boost
 
