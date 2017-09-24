@@ -257,12 +257,15 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 	            	}
 
 	            	found = str.find(":~");
-
-	            	if(str.find(WC_NEGATION) == std::string::npos)
+	            	bool wc = false;
+	            	if(str.find(WC_NEGATION) == std::string::npos){
 						//boost::split(ind_commands,str,boost::is_any_of(DOT));
 						split(ind_commands,str,'.');
-					else
+					}
+					else{
 						ind_commands.push_back(str);
+						wc = true;
+					}
 
             		for (int i = 0; i < ind_commands.size(); ++i)
             		{
@@ -280,8 +283,10 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 						if(match_rule(output,input_temp) != 2){
 							domain::remove_domain_variables(output,output);
 						}
-						
-						output.append(DOT).append(NEWLINE);
+						if(!wc)
+							output.append(DOT).append(NEWLINE);
+						else
+							output.append(NEWLINE);
 
 						
 						//Reversing the above operation
