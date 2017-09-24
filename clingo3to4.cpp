@@ -8,7 +8,7 @@
 namespace io = boost::iostreams; 
 namespace po = boost::program_options; 
 
-// #define DEBUG 1
+//#define DEBUG 1
 
 int clingo3to4::convert(const int argc,const char *argv[]){	
 	// int parse_op = clingo3to4::parse_input_args(argc,argv);
@@ -271,6 +271,8 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
             			
             			std::string input_temp(ind_commands[i]);
             			std::string output(input_temp); 
+
+            			if(input_temp.size() == 0) continue;
 						
 
 						//When this functions returns 2 it means that we dont want to append dot
@@ -628,7 +630,7 @@ int clingo3to4::match_rule(std::string& output, const std::string& input){
 	}
 	else if (clingo3to4::match_weak_constarints_rule(output,input)){
 		#ifdef DEBUG
-			std::cout<<"end python rule matched"<<std::endl;
+			std::cout<<"Weak constraint rule matched"<<std::endl;
 		#endif
 		return 2;
 	}
@@ -716,10 +718,11 @@ int clingo3to4::match_weak_constarints_rule(std::string& output, const std::stri
 			// [
 			// -1@0,1,X
 			// ]
+			return 1;
 
 		}
 	}
-	return 1;
+	return 0;
 
 }
 
