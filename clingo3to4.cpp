@@ -160,7 +160,7 @@ void clingo3to4::split(std::vector<std::string>& container, std::string& str, ch
 	std::unordered_map<char, char> map({{'"', '"'},{'{','}'},{'(',')'}});
 	std::unordered_set<char> set({'"','}',')'});
 
-	int start = 0 , end = start+1;
+	int start = 0 , end = 0;
 	std::stack<char> mystack;
  
 
