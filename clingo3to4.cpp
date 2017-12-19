@@ -256,7 +256,7 @@ int clingo3to4::convert_file(const char *argv[],bool stdout,std::string filename
 	            		boost::replace_all(str, "..", ",,");
 	            	}
 
-	            	found = str.find(":~");
+	            	//found = str.find(":~");
 	            	bool wc = false;
 	            	if(str.find(WC_NEGATION) == std::string::npos){
 						//boost::split(ind_commands,str,boost::is_any_of(DOT));
